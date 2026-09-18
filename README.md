@@ -1,7 +1,13 @@
 # Excursion-Based Risk Management Simulator
 
+![Python](https://img.shields.io/badge/python-3.9%2B-blue)
+![Streamlit](https://img.shields.io/badge/streamlit-app-ff4b4b?logo=streamlit&logoColor=white)
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+
 A Streamlit app that re-simulates a TradingView backtest trade-by-trade under
-a configurable partial-take-profit / stop-loss-guard strategy.
+a configurable partial-take-profit / stop-loss-guard strategy, with optional
+per-trade and daily PnL caps, CSV-detected position sizing, and drawdown
+analysis on top of the simulated equity curve.
 
 ## Setup
 
