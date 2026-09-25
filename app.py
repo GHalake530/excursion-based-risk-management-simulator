@@ -27,6 +27,7 @@ import calendar as cal_module
 import io
 import json
 import os
+import re
 from datetime import time as dt_time, timedelta
 import pandas as pd
 import plotly.graph_objects as go
@@ -228,6 +229,7 @@ PERSISTED_KEYS = [
     "_sizing_file_id", "_lot_size_anchor",
     "custom_start_date", "custom_end_date",
     "use_time_filter", "time_filter_start", "time_filter_end",
+    "push_symbol",
 ]
 
 if "_settings_restored" not in st.session_state:
@@ -293,7 +295,38 @@ TRADE_JOURNAL_URL = "http://localhost:3000"
 TRADE_JOURNAL_ACCOUNT_NAME = "Excursion Simulator"
 
 
-def push_to_trade_journal(csv_text, file_name="simulated_trades.csv"):
+# TradingView's "List of Trades" export has no symbol column, so the
+# symbol comes from the filename when it names one, else from the price
+# level of the trades. The user can always correct it before pushing.
+_EXCHANGE_TICKER_RE = re.compile(
+    r"(?:^|_)(?:NASDAQ|NYSE|AMEX|CME|COMEX|CBOT|NYMEX|OANDA|FOREXCOM|BINANCE|COINBASE)_([A-Za-z0-9.!-]+)_(?=\d)",
+    re.I,
+)
+_CCY = "USD|EUR|GBP|JPY|AUD|NZD|CAD|CHF|XAU|XAG"
+_PAIR_RE = re.compile(rf"(?<![A-Z])((?:{_CCY})(?:{_CCY})|BTCUSD|ETHUSD|NAS100|US30|SPX500|GER40)(?![A-Z])")
+# (symbol, low, high) by typical price; first match wins.
+_PRICE_RANGES = [("XAUUSD", 1000, 6000), ("XAGUSD", 10, 150), ("BTCUSD", 30000, 250000)]
+UNKNOWN_SYMBOL = "UNKNOWN"
+
+
+def detect_symbol(file_name, prices):
+    name = file_name or ""
+    m = _EXCHANGE_TICKER_RE.search(name)
+    if m:
+        return m.group(1).upper()
+    m = _PAIR_RE.search(name.upper())
+    if m:
+        return m.group(1)
+    prices = pd.to_numeric(prices, errors="coerce").dropna() if prices is not None else pd.Series(dtype=float)
+    if not prices.empty:
+        median = prices.median()
+        for symbol, low, high in _PRICE_RANGES:
+            if low <= median <= high:
+                return symbol
+    return UNKNOWN_SYMBOL
+
+
+def push_to_trade_journal(csv_text, file_name="simulated_trades.csv", symbol=UNKNOWN_SYMBOL):
     accounts_resp = requests.get(f"{TRADE_JOURNAL_URL}/api/accounts", params={"summary": "1"}, timeout=5)
     accounts_resp.raise_for_status()
     accounts = accounts_resp.json().get("accounts", [])
@@ -331,6 +364,7 @@ def push_to_trade_journal(csv_text, file_name="simulated_trades.csv"):
             "content": csv_text,
             "accountId": account_id,
             "fileName": file_name,
+            "symbol": symbol,
         },
         timeout=30,
     )
@@ -1023,6 +1057,7 @@ if csv_bytes is not None:
         st.session_state["target_lot_size"] = csv_lot_size
         st.session_state["_lot_size_anchor"] = csv_lot_size
         st.session_state["testing_period"] = "Entire history"
+        st.session_state.pop("push_symbol", None)
         st.session_state.pop("custom_start_date", None)
         st.session_state.pop("custom_end_date", None)
 
@@ -1602,7 +1637,20 @@ if csv_bytes is not None:
         full_export = prepare_export(export_source, FULL_EXPORT_ORDER)
     csv_text = full_export.to_csv(index=False)
     csv_bytes = csv_text.encode("utf-8")
-    dl_col, push_col = st.columns([2, 1])
+    if not st.session_state.get("push_symbol"):
+        raw_df = trades.attrs.get("raw_export_df")
+        price_col = trades.attrs.get("export_price_col")
+        prices = raw_df[price_col] if raw_df is not None and price_col in raw_df.columns else None
+        st.session_state["push_symbol"] = detect_symbol(active_file_name, prices)
+    dl_col, sym_col, push_col = st.columns([2, 1, 1], vertical_alignment="bottom")
+    push_symbol = sym_col.text_input(
+        "Symbol",
+        key="push_symbol",
+        help=(
+            "Sent to Trade Journal with the trades. Detected from the filename, or "
+            "guessed from the price level when the filename has none - edit it if wrong."
+        ),
+    ).strip().upper() or UNKNOWN_SYMBOL
     dl_col.download_button(
         "Download full trade-by-trade results as CSV",
         data=csv_bytes,
@@ -1611,10 +1659,10 @@ if csv_bytes is not None:
     )
     if push_col.button("Push to Trade Journal", help=f"Updates the '{TRADE_JOURNAL_ACCOUNT_NAME}' account at {TRADE_JOURNAL_URL}"):
         try:
-            push_result = push_to_trade_journal(csv_text, file_name=active_file_name or "simulated_trades.csv")
+            push_result = push_to_trade_journal(csv_text, file_name=active_file_name or "simulated_trades.csv", symbol=push_symbol)
             st.success(
                 f"Pushed to Trade Journal -> '{TRADE_JOURNAL_ACCOUNT_NAME}' account: "
-                f"{push_result.get('inserted', '?')} execution(s) imported. "
+                f"{push_result.get('inserted', '?')} execution(s) imported as {push_symbol}. "
                 f"Open {TRADE_JOURNAL_URL} and select that account to view."
             )
             if push_result.get("warnings"):
