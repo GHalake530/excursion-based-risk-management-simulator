@@ -27,7 +27,7 @@ import calendar as cal_module
 import io
 import json
 import os
-from datetime import timedelta
+from datetime import time as dt_time, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 import requests
@@ -53,57 +53,153 @@ st.html(
     html, body, .stApp, [class^="st-"]:not([data-testid="stIconMaterial"]), [class*=" st-"]:not([data-testid="stIconMaterial"]) {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
-    .stApp { background-color: #0a0e14; }
+    .stApp { background-color: #09090b; }
+    [data-testid="stHeader"] { background: transparent; }
+    [data-testid="stAppDeployButton"] { display: none; }
+    .block-container { padding-top: 2.2rem; max-width: 1680px; }
+    section[data-testid="stSidebar"] { background: #09090b; border-right: 1px solid #1f1f23; }
 
-    div[data-testid="stVerticalBlock"].st-emotion-cache-1fpp8sd {
-        background: linear-gradient(180deg, #12161f 0%, #0d1017 100%) !important;
-        border-color: #1f2530 !important;
-        border-radius: 14px !important;
-        padding: 18px 20px !important;
+    /* Bordered Streamlit containers used as cards (keyed "tjc-...") */
+    [class*="st-key-tjc-"] {
+        background: #111113 !important;
+        border: 1px solid #1f1f23 !important;
+        border-radius: 12px !important;
+        padding: 16px 18px !important;
     }
+
+    .tj-page-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+    .tj-page-title { font-size: 22px; font-weight: 600; color: #fafafa; }
+    .tj-page-sub { font-size: 13px; color: #71717a; }
+
+    .tj-grid {
+        display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px; margin-bottom: 12px;
+    }
+    @media (max-width: 1250px) { .tj-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 800px) { .tj-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 520px) { .tj-grid { grid-template-columns: minmax(0, 1fr); } }
+    .tj-card {
+        background: #111113; border: 1px solid #1f1f23; border-radius: 12px;
+        padding: 16px 18px; min-height: 132px; display: flex; flex-direction: column; min-width: 0;
+    }
+    .tj-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .tj-card-head svg { width: 16px; height: 16px; stroke: #71717a; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .tj-card-body { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; }
+    .tj-card-head .tj-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
     .tj-label {
-        font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
-        color: #8b93a5; font-weight: 600; margin-bottom: 6px;
+        font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+        color: #a1a1aa; font-weight: 500;
     }
     .tj-value {
-        font-size: 24px; font-weight: 700; color: #e8eaed; line-height: 1.2;
-        white-space: nowrap; letter-spacing: -0.01em;
+        font-size: 24px; font-weight: 600; color: #fafafa; line-height: 1.2;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em;
     }
-    .tj-value.pos { color: #3fb950; }
-    .tj-value.neg { color: #f85149; }
-    .tj-sub { font-size: 12px; color: #6b7280; margin-top: 6px; }
-    .tj-banner {
-        font-size: 13px; color: #8b93a5; background: #12161f;
-        border: 1px solid #1f2530; border-left: 3px solid #3b82f6;
-        border-radius: 8px; padding: 10px 14px; margin-bottom: 10px;
+    .pos { color: #22c55e !important; }
+    .neg { color: #ef4444 !important; }
+    .tj-sub { font-size: 12px; color: #71717a; margin-top: 6px; line-height: 1.5; }
+    .tj-pill {
+        display: inline-block; font-size: 11px; font-weight: 500; border-radius: 6px;
+        padding: 2px 7px; margin-top: 6px; width: fit-content;
     }
-    .tj-cal-head { font-size: 11px; color: #6b7280; text-align: center; padding-bottom: 4px; }
-    .tj-cal-pnl { font-size: 13px; font-weight: 700; }
-    .tj-cal-pnl.pos { color: #3fb950; }
-    .tj-cal-pnl.neg { color: #f85149; }
+    .tj-pill.pos { background: rgba(34,197,94,0.12); }
+    .tj-pill.neg { background: rgba(239,68,68,0.12); }
 
-    div[data-testid="stButton"] button {
-        min-height: 68px; border-radius: 10px; padding: 6px 4px;
-        background: #12161f; border-color: #1f2530;
+    .tj-gauge-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .tj-gauge { position: relative; width: 96px; height: 56px; flex: none; }
+    .tj-gauge svg { width: 96px; height: 56px; }
+    .tj-gauge span { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-size: 17px; font-weight: 600; color: #fafafa; }
+    .tj-gauge-side { font-size: 12px; color: #a1a1aa; text-align: right; line-height: 1.6; white-space: nowrap; }
+    .tj-ratio-bar { display: flex; gap: 3px; height: 5px; margin-top: 10px; }
+    .tj-ratio-bar div { border-radius: 3px; }
+
+    .tj-banner {
+        font-size: 13px; color: #a1a1aa; background: #111113;
+        border: 1px solid #1f1f23; border-left: 3px solid #3b82f6;
+        border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;
     }
+    .tj-card-title { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+    .tj-card-title .tj-note { font-size: 11px; color: #71717a; }
+
+    .tj-cal-head { font-size: 12px; color: #a1a1aa; padding: 0 4px 4px; }
+    .tj-cal-head.week { text-align: right; }
+    .tj-cal-week { min-height: 76px; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; font-size: 12px; font-weight: 600; }
+    .tj-cal-week .tj-sub { margin-top: 2px; font-weight: 400; }
+    .tj-cal-foot { display: flex; justify-content: space-between; font-size: 13px; color: #a1a1aa; margin-top: 10px; }
+    .tj-cal-foot b { font-weight: 600; }
+    [class*="st-key-calday_"] button {
+        min-height: 76px; width: 100%; border-radius: 8px; padding: 6px 8px;
+        background: #0d0d0f; border: 1px solid #1f1f23;
+        justify-content: flex-start; align-items: flex-start; text-align: left;
+    }
+    [class*="st-key-calday_"] button > div { width: 100%; justify-content: flex-start; }
+    [class*="st-key-calday_"] button p { font-size: 12px; line-height: 1.45; text-align: left; white-space: normal; overflow: visible; }
+    [class*="st-key-calday_"] button p strong { font-size: 13px; color: #fafafa; }
+
+    .tj-activity { max-height: 640px; overflow-y: auto; }
+    .tj-act-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; border-bottom: 1px solid #18181b; font-size: 13px; }
+    .tj-act-row:last-child { border-bottom: none; }
+    .tj-act-tag { font-size: 11px; font-weight: 600; border-radius: 5px; padding: 2px 0; width: 48px; text-align: center; white-space: nowrap; flex: none; }
+    .tj-act-tag.pos { background: rgba(34,197,94,0.12); }
+    .tj-act-tag.neg { background: rgba(239,68,68,0.12); }
+    .tj-act-tag.flat { background: #27272a; color: #a1a1aa; }
+    .tj-act-main { flex: 1; color: #e4e4e7; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tj-act-time { color: #71717a; font-size: 12px; }
+    .tj-act-pnl { font-weight: 600; white-space: nowrap; }
+
     section[data-testid="stFileUploaderDropzone"] {
-        background: linear-gradient(180deg, #12161f 0%, #0d1017 100%) !important;
-        border: 1px solid #1f2530 !important;
+        background: #111113 !important;
+        border: 1px solid #1f1f23 !important;
         border-radius: 12px !important;
     }
     </style>
     """
 )
 
+# Minimal line icons for card headers (24x24 viewBox, stroked).
+ICONS = {
+    "dollar": '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1-3 2.3c0 3.2 6 1.8 6 5 0 1.4-1.3 2.7-3 2.7s-3-1.1-3-2.5M12 5.5v13"/>',
+    "target": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    "scale": '<path d="M12 4v16M7 20h10M5 8h14M5 8l-3 6a3 3 0 0 0 6 0zM19 8l-3 6a3 3 0 0 0 6 0z"/>',
+    "calendar": '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+    "arrows": '<path d="M8 4v16M4 8l4-4 4 4M16 20V4M12 16l4 4 4-4"/>',
+    "list": '<path d="M4 6h16M4 12h16M4 18h10"/>',
+    "trend": '<path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/>',
+    "down": '<path d="M3 7l6 6 4-4 8 8M21 11v6h-6"/>',
+    "pulse": '<path d="M3 12h4l3-7 4 14 3-7h4"/>',
+}
 
-def render_kpi_card(col, label, value, value_class="", sub=None):
-    with col:
-        with st.container(border=True):
-            st.markdown(f'<div class="tj-label">{label}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="tj-value {value_class}">{value}</div>', unsafe_allow_html=True)
-            if sub:
-                st.markdown(f'<div class="tj-sub">{sub}</div>', unsafe_allow_html=True)
+
+def money(v, signed=False):
+    sign = "-" if v < 0 else ("+" if signed and v > 0 else "")
+    return f"{sign}${abs(v):,.2f}"
+
+
+def pnl_class(v):
+    return "pos" if v > 0 else ("neg" if v < 0 else "")
+
+
+def kpi_card(label, icon, body):
+    svg = f'<svg viewBox="0 0 24 24">{ICONS[icon]}</svg>' if icon else ""
+    return (
+        f'<div class="tj-card"><div class="tj-card-head"><span class="tj-label" title="{label}">{label}</span>{svg}</div>'
+        f'<div class="tj-card-body">{body}</div></div>'
+    )
+
+
+def gauge(pct, side_html):
+    pct = max(0.0, min(100.0, pct))
+    arc = "M10 50 A38 38 0 0 1 86 50"
+    return (
+        '<div class="tj-gauge-row"><div class="tj-gauge"><svg viewBox="0 0 96 56">'
+        f'<path d="{arc}" fill="none" stroke="#27272a" stroke-width="9" stroke-linecap="round" pathLength="100"/>'
+        f'<path d="{arc}" fill="none" stroke="#1d9bf0" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="{pct:.1f} 100"/>'
+        f'</svg><span>{pct:.1f}%</span></div><div class="tj-gauge-side">{side_html}</div></div>'
+    )
+
+
+def render_card_grid(cards):
+    st.markdown(f'<div class="tj-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
 
 
 def render_banner(text):
@@ -131,6 +227,7 @@ PERSISTED_KEYS = [
     "exclude_weekend_held", "target_lot_size", "testing_period",
     "_sizing_file_id", "_lot_size_anchor",
     "custom_start_date", "custom_end_date",
+    "use_time_filter", "time_filter_start", "time_filter_end",
 ]
 
 if "_settings_restored" not in st.session_state:
@@ -145,6 +242,8 @@ if "_settings_restored" not in st.session_state:
                 v = saved_settings[k]
                 if k in ("custom_start_date", "custom_end_date") and v:
                     v = pd.Timestamp(v).date()
+                if k in ("time_filter_start", "time_filter_end") and v:
+                    v = dt_time.fromisoformat(v)
                 st.session_state[k] = v
         except (json.JSONDecodeError, OSError):
             pass
@@ -166,6 +265,9 @@ WIDGET_DEFAULTS = {
     "use_loss_cap": False,
     "loss_cap_value": 500.0,
     "exclude_weekend_held": False,
+    "use_time_filter": False,
+    "time_filter_start": dt_time(0, 0),
+    "time_filter_end": dt_time(12, 0),
 }
 for k, v in WIDGET_DEFAULTS.items():
     st.session_state.setdefault(k, v)
@@ -413,6 +515,7 @@ def load_trades(uploaded_file):
 
     entry_dt_series = out["Trade"].map(entry_dates) if entry_dates else pd.Series([pd.NaT] * len(out))
     entry_dt_series = entry_dt_series.where(entry_dt_series.notna(), out["Date and Time"])
+    out["Entry Time"] = pd.to_datetime(entry_dt_series, errors="coerce").reset_index(drop=True)
     out["Weekend Held"] = [
         is_weekend_held(e, x) for e, x in zip(entry_dt_series, out["Date and Time"])
     ]
@@ -835,6 +938,22 @@ exclude_weekend_held = st.sidebar.checkbox(
         "isn't in the file) includes a Saturday or Sunday."
     ),
 )
+use_time_filter = st.sidebar.checkbox(
+    "Filter by Entry Time",
+    key="use_time_filter",
+    help=(
+        "Only counts trades opened inside this time-of-day window (the From time "
+        "is included, the To time is not). Times are in the CSV's own timezone. "
+        "If From is later than To, the window wraps past midnight."
+    ),
+)
+time_from_col, time_to_col = st.sidebar.columns(2)
+time_filter_start = time_from_col.time_input(
+    "From", key="time_filter_start", step=timedelta(minutes=15), disabled=not use_time_filter,
+)
+time_filter_end = time_to_col.time_input(
+    "To", key="time_filter_end", step=timedelta(minutes=15), disabled=not use_time_filter,
+)
 
 st.sidebar.markdown("---")
 
@@ -1005,8 +1124,19 @@ if csv_bytes is not None:
     if exclude_weekend_held:
         filtered_trades = filtered_trades[~filtered_trades["Weekend Held"]].copy()
 
+    if use_time_filter:
+        entry_dt = filtered_trades["Entry Time"]
+        entry_min = entry_dt.dt.hour * 60 + entry_dt.dt.minute + entry_dt.dt.second / 60
+        start_min = time_filter_start.hour * 60 + time_filter_start.minute
+        end_min = time_filter_end.hour * 60 + time_filter_end.minute
+        if start_min <= end_min:
+            in_window = (entry_min >= start_min) & (entry_min < end_min)
+        else:
+            in_window = (entry_min >= start_min) | (entry_min < end_min)
+        filtered_trades = filtered_trades[in_window].copy()
+
     if filtered_trades.empty:
-        st.warning("No trades found within the selected date range.")
+        st.warning("No trades found within the selected date range and filters.")
         st.stop()
 
     if use_trade_loss_cap and "Adverse Excursion USD" not in filtered_trades.columns:
@@ -1085,7 +1215,15 @@ if csv_bytes is not None:
     day_total = len(daily_pnl)
     day_win_pct = (day_win_count / day_total * 100) if day_total else 0.0
 
-    st.subheader("Key Performance Indicators")
+    period_text = testing_period if testing_period != "Custom date range" else "Custom range"
+    if use_time_filter:
+        period_text += f' · entries {time_filter_start.strftime("%H:%M")}–{time_filter_end.strftime("%H:%M")}'
+    st.markdown(
+        f'<div class="tj-page-head"><div class="tj-page-title">Dashboard</div>'
+        f'<div class="tj-page-sub">{active_file_name} · {period_text} · '
+        f'{start_date.strftime("%b %d, %Y")} – {end_date.strftime("%b %d, %Y")}</div></div>',
+        unsafe_allow_html=True,
+    )
 
     loss_cap_count = int((result["Resolved By"] == RESOLUTION_LOSS_CAP).sum())
     profit_cap_count = int((result["Resolved By"] == RESOLUTION_PROFIT_CAP).sum())
@@ -1120,108 +1258,123 @@ if csv_bytes is not None:
             f"{loss_cap_count + profit_cap_count} trade(s)."
         )
 
-    pnl_class = "pos" if sim_total >= 0 else "neg"
-    kpi_cols = st.columns(5)
-    render_kpi_card(
-        kpi_cols[0], "Net P&L", f"${sim_total:,.2f}", pnl_class,
-        sub=f"{'▲' if sim_total >= baseline_total else '▼'} ${sim_total - baseline_total:,.2f} vs baseline · {total_trades} closed trades",
-    )
-    render_kpi_card(
-        kpi_cols[1], "Trade Win %", f"{sim_winrate:.1f}%",
-        sub=f"{win_count} W &nbsp;·&nbsp; {loss_count} L",
-    )
-    render_kpi_card(
-        kpi_cols[2], "Profit Factor",
-        f"{profit_factor:.2f}" if profit_factor != float("inf") else "∞",
-        sub="gross profit ÷ gross loss",
-    )
-    render_kpi_card(
-        kpi_cols[3], "Day Win %", f"{day_win_pct:.1f}%",
-        sub=f"{day_total} trading days",
-    )
-    render_kpi_card(
-        kpi_cols[4], "Avg Win / Loss",
-        f"{avg_win_loss_ratio:.2f}" if avg_win_loss_ratio != float("inf") else "∞",
-        sub=f"${avg_win:,.2f} avg win · ${avg_loss:,.2f} avg loss",
-    )
+    ratio_text = f"{avg_win_loss_ratio:.2f}" if avg_win_loss_ratio != float("inf") else "∞"
+    win_share = avg_win / (avg_win + abs(avg_loss)) * 100 if (avg_win + abs(avg_loss)) > 0 else 50.0
+    be_count = total_trades - win_count - loss_count
+    wl_side = f"{win_count:,} W<br>" + (f"{be_count:,} BE<br>" if be_count else "") + f"{loss_count:,} L"
+    delta = sim_total - baseline_total
 
-    dd_cols = st.columns(4)
-    render_kpi_card(dd_cols[0], "Max Drawdown - Baseline", f"${baseline_dd:,.2f}", "neg")
-    render_kpi_card(
-        dd_cols[1], "Max Drawdown - Simulated", f"${sim_dd:,.2f}", "neg",
-        sub=f"${sim_dd - baseline_dd:+,.2f} vs baseline",
-    )
-    render_kpi_card(dd_cols[2], "Worst Daily Drawdown - Baseline", f"${baseline_daily_dd:,.2f}", "neg")
-    render_kpi_card(
-        dd_cols[3], "Worst Daily Drawdown - Simulated", f"${sim_daily_dd:,.2f}", "neg",
-        sub=f"${sim_daily_dd - baseline_daily_dd:+,.2f} vs baseline",
-    )
+    render_card_grid([
+        kpi_card(
+            "Net P&L", "dollar",
+            f'<div class="tj-value {pnl_class(sim_total)}">{money(sim_total, signed=True)}</div>'
+            f'<span class="tj-pill {pnl_class(delta)}">{"▲" if delta >= 0 else "▼"} {money(abs(delta))} vs baseline</span>'
+            f'<div class="tj-sub">{total_trades:,} closed trades</div>',
+        ),
+        kpi_card("Trade Win %", "target", gauge(sim_winrate, wl_side)),
+        kpi_card(
+            "Profit Factor", "scale",
+            f'<div class="tj-value">{f"{profit_factor:.2f}" if profit_factor != float("inf") else "∞"}</div>'
+            '<div class="tj-sub">gross profit ÷ gross loss</div>',
+        ),
+        kpi_card("Day Win %", "calendar", gauge(day_win_pct, f"{day_win_count} / {day_total}<br>days")),
+        kpi_card(
+            "Avg Win / Loss", "arrows",
+            f'<div class="tj-value">{ratio_text}</div>'
+            f'<div class="tj-ratio-bar"><div style="width:{win_share:.1f}%;background:#22c55e"></div>'
+            f'<div style="width:{100 - win_share:.1f}%;background:#ef4444"></div></div>'
+            f'<div class="tj-sub"><span class="pos">{money(avg_win, signed=True)}</span> avg win · '
+            f'<span class="neg">{money(avg_loss)}</span> avg loss</div>',
+        ),
+    ])
+    render_card_grid([
+        kpi_card(
+            "Avg Trades / Day", "list",
+            f'<div class="tj-value">{avg_trades_per_day:.1f}</div>'
+            f'<div class="tj-sub">{total_trades:,} trades over {trading_days} trading days</div>',
+        ),
+        kpi_card(
+            "Avg P&L / Day", "trend",
+            f'<div class="tj-value {pnl_class(avg_pnl_per_day)}">{money(avg_pnl_per_day, signed=True)}</div>'
+            '<div class="tj-sub">net P&L ÷ trading days</div>',
+        ),
+        kpi_card(
+            "Max Drawdown", "down",
+            f'<div class="tj-value neg">{money(-sim_dd)}</div>'
+            f'<div class="tj-sub">baseline {money(-baseline_dd)} · {money(sim_dd - baseline_dd, signed=True)} vs baseline</div>',
+        ),
+        kpi_card(
+            "Worst Day Drawdown", "down",
+            f'<div class="tj-value neg">{money(-sim_daily_dd)}</div>'
+            f'<div class="tj-sub">baseline {money(-baseline_daily_dd)} · {money(sim_daily_dd - baseline_daily_dd, signed=True)} vs baseline</div>',
+        ),
+        kpi_card(
+            "Baseline", "pulse",
+            f'<div class="tj-value {pnl_class(baseline_total)}">{money(baseline_total, signed=True)}</div>'
+            f'<div class="tj-sub">{len(result):,} trades · {baseline_winrate:.1f}% win rate<br>'
+            f'simulated = {effective_label}</div>',
+        ),
+    ])
 
-    render_banner(
-        f"Baseline (all {len(result)} trades) — Net Total PnL: ${baseline_total:,.2f} · "
-        f"Win Rate: {baseline_winrate:.1f}% · Simulated line = {effective_label}"
-    )
+    def style_chart(fig, height):
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#71717a", size=11), hovermode="x unified",
+            hoverlabel=dict(bgcolor="#18181b", bordercolor="#27272a", font=dict(color="#fafafa")),
+            margin=dict(t=8, b=8, l=8, r=8), height=height,
+        )
+        fig.update_xaxes(showgrid=False, nticks=6, linecolor="#1f1f23")
+        fig.update_yaxes(gridcolor="#1f1f23", zerolinecolor="#3f3f46", tickprefix="$", tickformat="~s", nticks=6)
 
     chart_col1, chart_col2 = st.columns(2)
     with chart_col1:
-        with st.container(border=True):
+        with st.container(border=True, key="tjc-cumulative"):
             st.markdown('<div class="tj-label">Daily Net Cumulative P&L</div>', unsafe_allow_html=True)
             fig = go.Figure()
             fig.add_trace(
                 go.Scatter(
                     x=result["Date and Time"], y=result["Baseline Cumulative PnL"],
-                    mode="lines", name="Baseline", line=dict(color="#6b7280", width=1.5),
+                    mode="lines", name="Baseline", line=dict(color="#52525b", width=1.5),
                 )
             )
             fig.add_trace(
                 go.Scatter(
                     x=result["Date and Time"], y=result[effective_cum_col],
-                    mode="lines", name=effective_label, line=dict(color="#3b82f6", width=2),
-                    fill="tozeroy", fillcolor="rgba(59,130,246,0.12)",
+                    mode="lines", name=effective_label, line=dict(color="#1d9bf0", width=2),
+                    fill="tozeroy", fillcolor="rgba(29,155,240,0.10)",
                 )
             )
-            fig.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#8b93a5"), hovermode="x unified",
-                legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5),
-                margin=dict(t=10, b=40, l=10, r=10), height=320,
+            style_chart(fig, 290)
+            fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="right", x=1.0))
+            st.plotly_chart(fig, width='stretch', config={"displayModeBar": False})
+
+            eq = result[effective_cum_col]
+            running_peak = eq.cummax().clip(lower=0.0)
+            dd_series = eq - running_peak
+            st.markdown(
+                '<div class="tj-card-title"><span class="tj-label">Drawdown (USD)</span>'
+                f'<span class="tj-label neg">Max {money(dd_series.min())}</span></div>',
+                unsafe_allow_html=True,
             )
-            fig.update_xaxes(type="date", dtick="M1", tickformat="%b %Y", gridcolor="#1f2530")
-            fig.update_yaxes(gridcolor="#1f2530")
+            fig = go.Figure(
+                go.Scatter(
+                    x=result["Date and Time"], y=dd_series, mode="lines", name="Drawdown",
+                    line=dict(color="#ef4444", width=1.2), fill="tozeroy", fillcolor="rgba(239,68,68,0.18)",
+                )
+            )
+            style_chart(fig, 150)
             st.plotly_chart(fig, width='stretch', config={"displayModeBar": False})
 
     with chart_col2:
-        with st.container(border=True):
+        with st.container(border=True, key="tjc-daily"):
             st.markdown('<div class="tj-label">Net Daily P&L</div>', unsafe_allow_html=True)
-            bar_colors = ["#3fb950" if v >= 0 else "#f85149" for v in daily_pnl.values]
-            fig = go.Figure(go.Bar(x=list(daily_pnl.index), y=daily_pnl.values, marker_color=bar_colors))
-            fig.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#8b93a5"), showlegend=False,
-                margin=dict(t=10, b=40, l=10, r=10), height=320,
+            bar_colors = ["#22c55e" if v >= 0 else "#ef4444" for v in daily_pnl.values]
+            fig = go.Figure(
+                go.Bar(x=list(daily_pnl.index), y=daily_pnl.values, marker_color=bar_colors, name="Net P&L")
             )
-            fig.update_xaxes(gridcolor="#1f2530")
-            fig.update_yaxes(gridcolor="#1f2530", zerolinecolor="#374151")
+            style_chart(fig, 482)
+            fig.update_layout(showlegend=False, bargap=0.25)
             st.plotly_chart(fig, width='stretch', config={"displayModeBar": False})
-
-    with st.container(border=True):
-        st.markdown('<div class="tj-label">Drawdown (USD)</div>', unsafe_allow_html=True)
-        eq = result[effective_cum_col]
-        running_peak = eq.cummax().clip(lower=0.0)
-        dd_series = eq - running_peak
-        fig = go.Figure(
-            go.Scatter(
-                x=result["Date and Time"], y=dd_series, mode="lines",
-                line=dict(color="#f85149", width=1.5), fill="tozeroy", fillcolor="rgba(248,81,73,0.2)",
-            )
-        )
-        fig.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#8b93a5"), margin=dict(t=10, b=40, l=10, r=10), height=220,
-        )
-        fig.update_xaxes(type="date", dtick="M1", tickformat="%b %Y", gridcolor="#1f2530")
-        fig.update_yaxes(gridcolor="#1f2530")
-        st.plotly_chart(fig, width='stretch', config={"displayModeBar": False})
 
     if day_total > 0:
         st.session_state.setdefault("selected_cal_day", None)
@@ -1237,63 +1390,103 @@ if csv_bytes is not None:
             .size()
         )
         month_total = sum(month_days.values())
-        month_total_class = "pos" if month_total >= 0 else "neg"
-
-        with st.container(border=True):
-            st.markdown(
-                f'<div class="tj-label">{cal_module.month_name[cal_month]} {cal_year} '
-                f'&nbsp;·&nbsp; Month total: <span class="tj-cal-pnl {month_total_class}">${month_total:,.2f}</span>'
-                f' &nbsp;·&nbsp; click a day to see its trades</div>',
-                unsafe_allow_html=True,
-            )
-            weeks = cal_module.Calendar(firstweekday=6).monthdayscalendar(cal_year, cal_month)
-            head_cols = st.columns(7)
-            for hc, wd in zip(head_cols, ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]):
-                hc.markdown(f'<div class="tj-cal-head">{wd}</div>', unsafe_allow_html=True)
-
-            for week in weeks:
-                row_cols = st.columns(7)
-                for col, day in zip(row_cols, week):
-                    if day == 0:
-                        continue
-                    d = pd.Timestamp(year=cal_year, month=cal_month, day=day).date()
-                    with col:
-                        if d in month_days:
-                            pnl = month_days[d]
-                            trades_n = int(month_trade_counts.get(d, 0))
-                            color = "green" if pnl >= 0 else "red"
-                            label = (
-                                f"**{day}**  \n:{color}[${pnl:,.2f}]  \n"
-                                f"{trades_n} trade{'s' if trades_n != 1 else ''}"
-                            )
-                        else:
-                            label = f"**{day}**"
-                        if st.button(label, key=f"calday_{d}", width='stretch'):
-                            st.session_state["selected_cal_day"] = str(d)
-
+        month_green = sum(1 for v in month_days.values() if v > 0)
         selected_day = st.session_state.get("selected_cal_day")
+
+        # Tint each traded day's button green/red, and outline the selected one.
+        day_css = []
+        for d, v in month_days.items():
+            bg, border = ("rgba(34,197,94,0.14)", "rgba(34,197,94,0.35)") if v >= 0 else ("rgba(239,68,68,0.14)", "rgba(239,68,68,0.35)")
+            day_css.append(f".st-key-calday_{d} button {{ background: {bg}; border-color: {border}; }}")
         if selected_day:
-            sel_date = pd.Timestamp(selected_day).date()
-            day_trades = visible[visible["Date and Time"].dt.date == sel_date].sort_values("Date and Time")
-            with st.container(border=True):
-                head_col, clear_col = st.columns([5, 1])
-                head_col.markdown(
-                    f'<div class="tj-label">Trades on {sel_date.strftime("%b %d, %Y")} '
-                    f'&nbsp;·&nbsp; {len(day_trades)} trade{"s" if len(day_trades) != 1 else ""}</div>',
+            day_css.append(f".st-key-calday_{selected_day} button {{ border: 1px solid #1d9bf0 !important; }}")
+        st.html(f"<style>{''.join(day_css)}</style>")
+
+        cal_col, act_col = st.columns([2, 1])
+        with cal_col:
+            with st.container(border=True, key="tjc-calendar"):
+                st.markdown(
+                    f'<div class="tj-card-title"><span class="tj-label">{cal_module.month_name[cal_month]} {cal_year}</span>'
+                    '<span class="tj-note">click a day to see its trades</span></div>',
                     unsafe_allow_html=True,
                 )
-                if clear_col.button("Clear", key="clear_cal_day"):
+                weeks = cal_module.Calendar(firstweekday=6).monthdayscalendar(cal_year, cal_month)
+                col_widths = [1] * 7 + [1.1]
+                head_cols = st.columns(col_widths, gap="small")
+                for hc, wd in zip(head_cols, ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Week"]):
+                    hc.markdown(
+                        f'<div class="tj-cal-head{" week" if wd == "Week" else ""}">{wd}</div>',
+                        unsafe_allow_html=True,
+                    )
+
+                for week in weeks:
+                    row_cols = st.columns(col_widths, gap="small")
+                    week_pnl = 0.0
+                    week_trades = 0
+                    for col, day in zip(row_cols, week):
+                        if day == 0:
+                            continue
+                        d = pd.Timestamp(year=cal_year, month=cal_month, day=day).date()
+                        with col:
+                            if d in month_days:
+                                pnl = month_days[d]
+                                trades_n = int(month_trade_counts.get(d, 0))
+                                week_pnl += pnl
+                                week_trades += trades_n
+                                label = (
+                                    f"{day}  \n**{'+' if pnl > 0 else '-' if pnl < 0 else ''}${abs(pnl):,.0f}**  \n"
+                                    f"{trades_n} trade{'s' if trades_n != 1 else ''}"
+                                )
+                            else:
+                                label = f"{day}"
+                            if st.button(label, key=f"calday_{d}", width='stretch'):
+                                st.session_state["selected_cal_day"] = None if selected_day == str(d) else str(d)
+                                st.rerun()
+                    week_html = (
+                        f'<span class="{pnl_class(week_pnl)}">{money(week_pnl, signed=True)}</span>'
+                        f'<span class="tj-sub">{week_trades} trades</span>'
+                        if week_trades else '<span class="tj-sub">–</span>'
+                    )
+                    row_cols[7].markdown(f'<div class="tj-cal-week">{week_html}</div>', unsafe_allow_html=True)
+
+                st.markdown(
+                    f'<div class="tj-cal-foot"><span>{len(month_days)} trading days · {month_green} green</span>'
+                    f'<span>Month: <b class="{pnl_class(month_total)}">{money(month_total, signed=True)}</b></span></div>',
+                    unsafe_allow_html=True,
+                )
+
+        with act_col:
+            with st.container(border=True, key="tjc-activity"):
+                if selected_day:
+                    sel_date = pd.Timestamp(selected_day).date()
+                    act_trades = visible[visible["Date and Time"].dt.date == sel_date].sort_values("Date and Time")
+                    title = f'Trades on {sel_date.strftime("%b %d, %Y")} · {len(act_trades)}'
+                else:
+                    act_trades = visible.sort_values("Date and Time").tail(25).iloc[::-1]
+                    title = "Recent trades"
+                head_col, clear_col = st.columns([3, 1])
+                head_col.markdown(f'<div class="tj-label">{title}</div>', unsafe_allow_html=True)
+                if selected_day and clear_col.button("Clear", key="clear_cal_day"):
                     st.session_state["selected_cal_day"] = None
                     st.rerun()
-                display_cols = [
-                    c for c in
-                    ["Trade", "Date and Time", "Baseline PnL USD", effective_col,
-                     "Favorable Excursion USD", "Adverse Excursion USD"]
-                    if c in day_trades.columns
-                ]
-                st.dataframe(day_trades[display_cols], width='stretch', hide_index=True)
 
-    st.subheader("Granular Time Analysis")
+                rows = []
+                for _, t in act_trades.iterrows():
+                    v = t[effective_col]
+                    cls = pnl_class(v) or "flat"
+                    tag = {"pos": "WIN", "neg": "LOSS", "flat": "BE"}[cls]
+                    when = t["Date and Time"].strftime("%H:%M" if selected_day else "%b %d %H:%M")
+                    rows.append(
+                        f'<div class="tj-act-row"><span class="tj-act-tag {cls}">{tag}</span>'
+                        f'<span class="tj-act-main">#{t["Trade"]:.0f} <span class="tj-act-time">{when}</span></span>'
+                        f'<span class="tj-act-pnl {pnl_class(v)}">{money(v, signed=True)}</span></div>'
+                    )
+                st.markdown(
+                    f'<div class="tj-activity">{"".join(rows) or "<div class=tj-sub>No trades.</div>"}</div>',
+                    unsafe_allow_html=True,
+                )
+
+    st.markdown('<div class="tj-page-head" style="margin-top:18px"><div class="tj-page-title">Granular Time Analysis</div></div>', unsafe_allow_html=True)
     tab_month, tab_week, tab_day = st.tabs(["Month-by-Month", "Week-by-Week", "Day-by-Day"])
 
     def build_period_summary(full_df, visible_df, period_freq):
