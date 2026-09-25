@@ -897,10 +897,15 @@ if csv_bytes is not None:
     # this file is first loaded (or a different file replaces it), re-anchor
     # Target Lot Size - and the caps, which start untouched - to the file's own
     # detected size, so nothing is scaled relative to a stale, unrelated file.
+    # The testing period resets too, so a new file isn't cut down to a date
+    # range picked for the previous one.
     if st.session_state.get("_sizing_file_id") != active_file_name:
         st.session_state["_sizing_file_id"] = active_file_name
         st.session_state["target_lot_size"] = csv_lot_size
         st.session_state["_lot_size_anchor"] = csv_lot_size
+        st.session_state["testing_period"] = "Entire history"
+        st.session_state.pop("custom_start_date", None)
+        st.session_state.pop("custom_end_date", None)
 
     def _rescale_caps_for_lot_size():
         anchor = st.session_state.get("_lot_size_anchor") or st.session_state["target_lot_size"]
