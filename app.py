@@ -148,6 +148,29 @@ st.html(
     .tj-act-time { color: #71717a; font-size: 12px; }
     .tj-act-pnl { font-weight: 600; white-space: nowrap; }
 
+    /* Prop firm tracker and payout rules */
+    .tj-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tj-table th { text-align: left; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #71717a; padding: 6px 8px; border-bottom: 1px solid #1f1f23; }
+    .tj-table td { padding: 9px 8px; border-bottom: 1px solid #18181b; color: #e4e4e7; vertical-align: top; }
+    .tj-table tr:last-child td { border-bottom: none; }
+    .tj-table td.num, .tj-table th.num { text-align: right; white-space: nowrap; }
+    .tj-badge { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 5px; padding: 2px 7px; white-space: nowrap; background: #27272a; color: #a1a1aa; }
+    .tj-badge.ok { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .tj-badge.bad { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .tj-badge.warn { background: rgba(234,179,8,0.12); color: #eab308; }
+    .tj-badge.info { background: rgba(29,155,240,0.12); color: #1d9bf0; }
+    .warn { color: #eab308 !important; }
+    .tj-rule { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid #1f1f23; font-size: 13px; color: #e4e4e7; }
+    .tj-rule:first-of-type { border-top: none; }
+    .tj-rule small { display: block; color: #71717a; font-size: 12px; }
+    .tj-rule b { white-space: nowrap; font-weight: 600; }
+    .tj-bar { height: 5px; border-radius: 3px; background: #27272a; margin-top: 4px; }
+    .tj-bar div { height: 100%; border-radius: 3px; background: #a1a1aa; }
+    .tj-empty { color: #71717a; font-size: 13px; padding: 18px 0; text-align: center; }
+    .tj-verdict { font-size: 18px; font-weight: 600; margin-top: 8px; }
+    .tj-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 800px) { .tj-grid.cols-3 { grid-template-columns: minmax(0, 1fr); } }
+
     section[data-testid="stFileUploaderDropzone"] {
         background: #111113 !important;
         border: 1px solid #1f1f23 !important;
@@ -157,55 +180,9 @@ st.html(
     """
 )
 
-# Minimal line icons for card headers (24x24 viewBox, stroked).
-ICONS = {
-    "dollar": '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1-3 2.3c0 3.2 6 1.8 6 5 0 1.4-1.3 2.7-3 2.7s-3-1.1-3-2.5M12 5.5v13"/>',
-    "target": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
-    "scale": '<path d="M12 4v16M7 20h10M5 8h14M5 8l-3 6a3 3 0 0 0 6 0zM19 8l-3 6a3 3 0 0 0 6 0z"/>',
-    "calendar": '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
-    "arrows": '<path d="M8 4v16M4 8l4-4 4 4M16 20V4M12 16l4 4 4-4"/>',
-    "list": '<path d="M4 6h16M4 12h16M4 18h10"/>',
-    "trend": '<path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/>',
-    "down": '<path d="M3 7l6 6 4-4 8 8M21 11v6h-6"/>',
-    "pulse": '<path d="M3 12h4l3-7 4 14 3-7h4"/>',
-}
-
-
-def money(v, signed=False):
-    sign = "-" if v < 0 else ("+" if signed and v > 0 else "")
-    return f"{sign}${abs(v):,.2f}"
-
-
-def pnl_class(v):
-    return "pos" if v > 0 else ("neg" if v < 0 else "")
-
-
-def kpi_card(label, icon, body):
-    svg = f'<svg viewBox="0 0 24 24">{ICONS[icon]}</svg>' if icon else ""
-    return (
-        f'<div class="tj-card"><div class="tj-card-head"><span class="tj-label" title="{label}">{label}</span>{svg}</div>'
-        f'<div class="tj-card-body">{body}</div></div>'
-    )
-
-
-def gauge(pct, side_html):
-    pct = max(0.0, min(100.0, pct))
-    arc = "M10 50 A38 38 0 0 1 86 50"
-    return (
-        '<div class="tj-gauge-row"><div class="tj-gauge"><svg viewBox="0 0 96 56">'
-        f'<path d="{arc}" fill="none" stroke="#27272a" stroke-width="9" stroke-linecap="round" pathLength="100"/>'
-        f'<path d="{arc}" fill="none" stroke="#1d9bf0" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="{pct:.1f} 100"/>'
-        f'</svg><span>{pct:.1f}%</span></div><div class="tj-gauge-side">{side_html}</div></div>'
-    )
-
-
-def render_card_grid(cards):
-    st.markdown(f'<div class="tj-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
-
-
-def render_banner(text):
-    st.markdown(f'<div class="tj-banner">{text}</div>', unsafe_allow_html=True)
-
+from ui_kit import gauge, kpi_card, money, pnl_class, render_banner, render_card_grid  # noqa: E402
+import prop_ui  # noqa: E402
+from prop_firms import evaluate_rules  # noqa: E402
 
 # --------------------------------------------------------------------------
 # Persistence: remember the last uploaded CSV and every sidebar setting
@@ -229,7 +206,7 @@ PERSISTED_KEYS = [
     "_sizing_file_id", "_lot_size_anchor",
     "custom_start_date", "custom_end_date",
     "use_time_filter", "time_filter_start", "time_filter_end",
-    "push_symbol",
+    "push_symbol", "strategy_rr",
 ]
 
 if "_settings_restored" not in st.session_state:
@@ -267,6 +244,7 @@ WIDGET_DEFAULTS = {
     "use_loss_cap": False,
     "loss_cap_value": 500.0,
     "exclude_weekend_held": False,
+    "strategy_rr": 1.0,
     "use_time_filter": False,
     "time_filter_start": dt_time(0, 0),
     "time_filter_end": dt_time(12, 0),
@@ -382,6 +360,14 @@ GUARD_QUARTER = "Quarter-Stop (1/4)"
 GUARD_HALF = "Half-Stop (1/2)"
 GUARD_THREE_QUARTER = "Three-Quarter-Stop (3/4)"
 GUARD_FULL = "Full Runner"
+
+def target_distance(baseline_pnl, rr):
+    """Dollar distance from entry to the trade's take-profit, which the guard
+    thresholds are percentages of. A winner closed at its target, so its PnL
+    already is that distance; a loser closed at its stop, so its PnL is one
+    unit of risk and the target sits rr times further away."""
+    return abs(baseline_pnl) if baseline_pnl > 0 else abs(baseline_pnl) * rr
+
 
 GUARD_RISK_FRACTIONS = {
     GUARD_BE: 0.0,
@@ -579,6 +565,7 @@ def simulate_trade(
     guard_mode,
     threshold_pct_2=0.0,
     guard_mode_2=None,
+    rr=1.0,
 ):
     """Guard-only simulation, run on the RAW trade. Assumes the caller has
     already confirmed the guard actually triggers (see resolve_trade).
@@ -588,14 +575,15 @@ def simulate_trade(
     threshold - it never re-touches the partial already banked by stage
     one, only which risk fraction the remainder is exposed to."""
     fav_exc = 0.0 if pd.isna(fav_exc) else fav_exc
-    threshold_value = threshold_pct * abs(baseline_pnl)
+    target = target_distance(baseline_pnl, rr)
+    threshold_value = threshold_pct * target
     partial_pnl = partial_pct * threshold_value
 
     if baseline_pnl > 0:
         remainder_pnl = (1 - partial_pct) * baseline_pnl
     else:
         fraction = GUARD_RISK_FRACTIONS.get(guard_mode, 1.0)
-        threshold_value_2 = threshold_pct_2 * abs(baseline_pnl)
+        threshold_value_2 = threshold_pct_2 * target
         if guard_mode_2 is not None and threshold_pct_2 > 0 and fav_exc >= threshold_value_2:
             fraction = GUARD_RISK_FRACTIONS.get(guard_mode_2, fraction)
         remainder_pnl = (1 - partial_pct) * baseline_pnl * fraction
@@ -622,6 +610,7 @@ def resolve_trade(
     trade_loss_cap_value,
     threshold_pct_2=0.0,
     guard_mode_2=None,
+    rr=1.0,
 ):
     """Resolve a single trade's simulated PnL.
 
@@ -665,13 +654,13 @@ def resolve_trade(
     if use_trade_loss_cap and adv_exc_abs is not None and adv_exc_abs >= trade_loss_cap_value:
         return -trade_loss_cap_value, RESOLUTION_LOSS_CAP
 
-    threshold_value = threshold_pct * abs(baseline_pnl)
+    threshold_value = threshold_pct * target_distance(baseline_pnl, rr)
     guard_would_trigger = fav_exc >= threshold_value and threshold_value > 0
 
     if guard_would_trigger:
         guard_pnl = simulate_trade(
             baseline_pnl, fav_exc, threshold_pct, partial_pct, guard_mode,
-            threshold_pct_2, guard_mode_2,
+            threshold_pct_2, guard_mode_2, rr,
         )
         if use_trade_profit_cap and guard_pnl > 0 and guard_pnl > trade_profit_cap_value:
             return trade_profit_cap_value, RESOLUTION_PROFIT_CAP
@@ -786,6 +775,7 @@ def run_simulation(
     loss_cap_value,
     threshold_pct_2=0.0,
     guard_mode_2=None,
+    rr=1.0,
 ):
     df = df.copy()
     has_adverse = "Adverse Excursion USD" in df.columns
@@ -806,6 +796,7 @@ def run_simulation(
             trade_loss_cap_value,
             threshold_pct_2,
             guard_mode_2,
+            rr,
         )
 
     resolved = df.apply(resolve, axis=1)
@@ -819,6 +810,96 @@ def run_simulation(
     df["Capped Cumulative PnL"] = df["Capped PnL USD"].cumsum()
     return df
 
+
+
+def render_payout_eligibility(visible, pnl_col, lot_size):
+    """Check the simulated trades against the prop firm payout and risk rules
+    (edited on the Prop Firms page), for a chosen account size."""
+    store = prop_ui.get_store()
+    rules = store.rules()
+    options = prop_ui.account_size_options(store.data())
+    st.markdown(
+        '<div class="tj-page-head" style="margin-top:18px"><div class="tj-page-title">Payout Eligibility</div>'
+        '<div class="tj-page-sub">simulated trades in this period checked against your prop firm rules</div></div>',
+        unsafe_allow_html=True,
+    )
+    labels = [name for name, _ in options] + ["Custom size"]
+    c1, c2, _ = st.columns([2, 1, 2])
+    choice = c1.selectbox("Account", labels, key="elig_account")
+    if choice == "Custom size":
+        size = c2.number_input("Account size ($)", min_value=1000.0, value=50000.0, step=1000.0, key="elig_size")
+    else:
+        size = dict(options)[choice]
+
+    ev = evaluate_rules(list(zip(visible["Date and Time"], visible[pnl_col])), size, rules)
+    lim = ev["limits"]
+    usd = lambda v: money(v).replace(".00", "")
+
+    if ev["breached"]:
+        reasons = []
+        if ev["dd_breach_on"]:
+            reasons.append(f"trailing max drawdown on {ev['dd_breach_on']:%b %d, %Y}")
+        if ev["daily_breach_days"]:
+            reasons.append(f"daily drawdown on {len(ev['daily_breach_days'])} day(s), first {ev['daily_breach_days'][0]:%b %d, %Y}")
+        if ev["trade_breaches"]:
+            reasons.append(f"{ev['trade_breaches']} trade(s) over the per-trade loss limit")
+        verdict = f'<span class="neg"><b>Account would be breached</b></span> · ' + "; ".join(reasons)
+    elif ev["eligible"]:
+        verdict = f'<span class="pos"><b>Eligible for a payout</b></span> · withdraw at least {usd(ev["min_withdrawal"])} to pass the Best Day Rule'
+    else:
+        missing = []
+        if ev["qualifying"] < lim["qualifying_days"]:
+            missing.append(f"{lim['qualifying_days'] - ev['qualifying']} more qualifying day(s)")
+        if ev["total"] < lim["total"]:
+            missing.append(f"{usd(lim['total'] - ev['total'])} more profit")
+        if not ev["best_day_ok"] and ev["total"] > 0:
+            missing.append(f"more profit spread across days (best day is {ev['best_day_share']:.0f}% of the total)")
+        verdict = '<span class="warn"><b>Not eligible yet</b></span> · needs ' + ", ".join(missing)
+    render_banner(f"{verdict} · account {usd(size)} · P&L at {lot_size:g} lots")
+
+    q_pct = ev["qualifying"] / lim["qualifying_days"] * 100 if lim["qualifying_days"] else 100.0
+    share = ev["best_day_share"]
+    cushion = ev["min_cushion"]
+    render_card_grid([
+        kpi_card("Qualifying days", "calendar", gauge(
+            q_pct, f'{ev["qualifying"]} / {lim["qualifying_days"]} needed<br>days ≥ {usd(lim["per_day"])}',
+            center=str(ev["qualifying"]),
+        )),
+        kpi_card("Total profit", "dollar",
+                 f'<div class="tj-value {"pos" if ev["total"] >= lim["total"] else pnl_class(ev["total"])}">{money(ev["total"], signed=True)}</div>'
+                 f'<div class="tj-sub">minimum before payout {usd(lim["total"])} · over {ev["trading_days"]} trading days</div>'),
+        kpi_card("Best Day Rule", "target",
+                 f'<div class="tj-value {"pos" if ev["best_day_ok"] else "warn"}">{"—" if share is None else f"{share:.1f}%"}</div>'
+                 f'<div class="tj-sub">best day {money(ev["best_day"], signed=True)} vs {rules["best_day_pct"]:g}% limit'
+                 f'{f" · withdraw ≥ {usd(ev["min_withdrawal"])}" if ev["min_withdrawal"] else ""}</div>'),
+        kpi_card("Daily drawdown", "down",
+                 f'<div class="tj-value {"neg" if ev["daily_breach_days"] else ""}">{money(ev["worst_day_low"])}</div>'
+                 f'<div class="tj-sub">worst intraday loss vs {usd(lim["daily_dd"])} limit · '
+                 f'{len(ev["daily_breach_days"])} breach day(s)</div>'),
+        kpi_card("Max drawdown (trailing)", "shield",
+                 f'<div class="tj-value {"neg" if ev["dd_breach_on"] else "pos"}">{"Breached" if ev["dd_breach_on"] else usd(cushion) if cushion is not None else "—"}</div>'
+                 f'<div class="tj-sub">{f"first breach {ev['dd_breach_on']:%b %d, %Y}" if ev["dd_breach_on"] else "tightest cushion above the floor"} · '
+                 f'{rules["max_drawdown_pct"]:g}% trailing the equity peak</div>'),
+        kpi_card("Max loss per trade", "arrows",
+                 f'<div class="tj-value {"neg" if ev["trade_breaches"] else ""}">{money(ev["worst_trade"])}</div>'
+                 f'<div class="tj-sub">worst trade vs {usd(lim["trade_loss"])} limit · {ev["trade_breaches"]} over the limit</div>'),
+    ], cols=3)
+    st.caption(
+        "Profit and drawdown use the simulated P&L of the trades shown (after guards and caps), with equity starting at the account size. "
+        "Edit the rule percentages under Prop Firms → Payout Rules."
+    )
+
+view = st.sidebar.radio(
+    "View", ["Simulator", "Prop Firms"], horizontal=True, key="app_view", label_visibility="collapsed",
+)
+if view == "Prop Firms":
+    # Simulator widgets aren't rendered on this page; re-assigning their
+    # values keeps Streamlit from discarding them before the user switches back.
+    for k in PERSISTED_KEYS + ["selected_cal_day"]:
+        if k in st.session_state:
+            st.session_state[k] = st.session_state[k]
+    prop_ui.render()
+    st.stop()
 
 uploaded_file = st.sidebar.file_uploader("Upload TradingView backtest CSV", type=["csv"])
 st.sidebar.caption(
@@ -835,6 +916,20 @@ if st.sidebar.button("Clear saved session", help="Forgets the saved upload and s
 st.sidebar.markdown("---")
 
 st.sidebar.header("Risk Management Controls")
+
+strategy_rr = st.sidebar.number_input(
+    "Strategy Reward:Risk (R)",
+    min_value=0.1,
+    step=0.25,
+    format="%.2f",
+    key="strategy_rr",
+    help=(
+        "The strategy's take-profit distance as a multiple of its stop distance. "
+        "1.00 = 1:1 (100 SL / 100 TP), 2.00 = 1:2 (100 SL / 200 TP). Guard thresholds "
+        "are a percentage of the TP distance, so with 2.00 a 50% threshold triggers "
+        "at +100 favorable, not +50."
+    ),
+)
 
 threshold_pct = st.sidebar.slider(
     "Gain Guard Threshold (%)",
@@ -1204,6 +1299,7 @@ if csv_bytes is not None:
         loss_cap_value,
         threshold_pct_2 if use_second_guard else 0.0,
         guard_mode_2 if use_second_guard else None,
+        strategy_rr,
     )
 
     trade_caps_active = use_trade_profit_cap or use_trade_loss_cap
@@ -1514,6 +1610,8 @@ if csv_bytes is not None:
                     f'<div class="tj-activity">{"".join(rows) or "<div class=tj-sub>No trades.</div>"}</div>',
                     unsafe_allow_html=True,
                 )
+
+    render_payout_eligibility(visible, effective_col, target_lot_size)
 
     st.markdown('<div class="tj-page-head" style="margin-top:18px"><div class="tj-page-title">Granular Time Analysis</div></div>', unsafe_allow_html=True)
     tab_month, tab_week, tab_day = st.tabs(["Month-by-Month", "Week-by-Week", "Day-by-Day"])
