@@ -1402,71 +1402,65 @@ if csv_bytes is not None:
             day_css.append(f".st-key-calday_{selected_day} button {{ border: 1px solid #1d9bf0 !important; }}")
         st.html(f"<style>{''.join(day_css)}</style>")
 
-        cal_col, act_col = st.columns([2, 1])
-        with cal_col:
-            with st.container(border=True, key="tjc-calendar"):
-                st.markdown(
-                    f'<div class="tj-card-title"><span class="tj-label">{cal_module.month_name[cal_month]} {cal_year}</span>'
-                    '<span class="tj-note">click a day to see its trades</span></div>',
-                    unsafe_allow_html=True,
-                )
-                weeks = cal_module.Calendar(firstweekday=6).monthdayscalendar(cal_year, cal_month)
-                col_widths = [1] * 7 + [1.1]
-                head_cols = st.columns(col_widths, gap="small")
-                for hc, wd in zip(head_cols, ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Week"]):
-                    hc.markdown(
-                        f'<div class="tj-cal-head{" week" if wd == "Week" else ""}">{wd}</div>',
-                        unsafe_allow_html=True,
-                    )
-
-                for week in weeks:
-                    row_cols = st.columns(col_widths, gap="small")
-                    week_pnl = 0.0
-                    week_trades = 0
-                    for col, day in zip(row_cols, week):
-                        if day == 0:
-                            continue
-                        d = pd.Timestamp(year=cal_year, month=cal_month, day=day).date()
-                        with col:
-                            if d in month_days:
-                                pnl = month_days[d]
-                                trades_n = int(month_trade_counts.get(d, 0))
-                                week_pnl += pnl
-                                week_trades += trades_n
-                                label = (
-                                    f"{day}  \n**{'+' if pnl > 0 else '-' if pnl < 0 else ''}${abs(pnl):,.0f}**  \n"
-                                    f"{trades_n} trade{'s' if trades_n != 1 else ''}"
-                                )
-                            else:
-                                label = f"{day}"
-                            if st.button(label, key=f"calday_{d}", width='stretch'):
-                                st.session_state["selected_cal_day"] = None if selected_day == str(d) else str(d)
-                                st.rerun()
-                    week_html = (
-                        f'<span class="{pnl_class(week_pnl)}">{money(week_pnl, signed=True)}</span>'
-                        f'<span class="tj-sub">{week_trades} trades</span>'
-                        if week_trades else '<span class="tj-sub">–</span>'
-                    )
-                    row_cols[7].markdown(f'<div class="tj-cal-week">{week_html}</div>', unsafe_allow_html=True)
-
-                st.markdown(
-                    f'<div class="tj-cal-foot"><span>{len(month_days)} trading days · {month_green} green</span>'
-                    f'<span>Month: <b class="{pnl_class(month_total)}">{money(month_total, signed=True)}</b></span></div>',
+        with st.container(border=True, key="tjc-calendar"):
+            st.markdown(
+                f'<div class="tj-card-title"><span class="tj-label">{cal_module.month_name[cal_month]} {cal_year}</span>'
+                '<span class="tj-note">click a day to see its trades</span></div>',
+                unsafe_allow_html=True,
+            )
+            weeks = cal_module.Calendar(firstweekday=6).monthdayscalendar(cal_year, cal_month)
+            col_widths = [1] * 7 + [1.1]
+            head_cols = st.columns(col_widths, gap="small")
+            for hc, wd in zip(head_cols, ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Week"]):
+                hc.markdown(
+                    f'<div class="tj-cal-head{" week" if wd == "Week" else ""}">{wd}</div>',
                     unsafe_allow_html=True,
                 )
 
-        with act_col:
+            for week in weeks:
+                row_cols = st.columns(col_widths, gap="small")
+                week_pnl = 0.0
+                week_trades = 0
+                for col, day in zip(row_cols, week):
+                    if day == 0:
+                        continue
+                    d = pd.Timestamp(year=cal_year, month=cal_month, day=day).date()
+                    with col:
+                        if d in month_days:
+                            pnl = month_days[d]
+                            trades_n = int(month_trade_counts.get(d, 0))
+                            week_pnl += pnl
+                            week_trades += trades_n
+                            label = (
+                                f"{day}  \n**{'+' if pnl > 0 else '-' if pnl < 0 else ''}${abs(pnl):,.0f}**  \n"
+                                f"{trades_n} trade{'s' if trades_n != 1 else ''}"
+                            )
+                        else:
+                            label = f"{day}"
+                        if st.button(label, key=f"calday_{d}", width='stretch'):
+                            st.session_state["selected_cal_day"] = None if selected_day == str(d) else str(d)
+                            st.rerun()
+                week_html = (
+                    f'<span class="{pnl_class(week_pnl)}">{money(week_pnl, signed=True)}</span>'
+                    f'<span class="tj-sub">{week_trades} trades</span>'
+                    if week_trades else '<span class="tj-sub">–</span>'
+                )
+                row_cols[7].markdown(f'<div class="tj-cal-week">{week_html}</div>', unsafe_allow_html=True)
+
+            st.markdown(
+                f'<div class="tj-cal-foot"><span>{len(month_days)} trading days · {month_green} green</span>'
+                f'<span>Month: <b class="{pnl_class(month_total)}">{money(month_total, signed=True)}</b></span></div>',
+                unsafe_allow_html=True,
+            )
+
+        if selected_day:
             with st.container(border=True, key="tjc-activity"):
-                if selected_day:
-                    sel_date = pd.Timestamp(selected_day).date()
-                    act_trades = visible[visible["Date and Time"].dt.date == sel_date].sort_values("Date and Time")
-                    title = f'Trades on {sel_date.strftime("%b %d, %Y")} · {len(act_trades)}'
-                else:
-                    act_trades = visible.sort_values("Date and Time").tail(25).iloc[::-1]
-                    title = "Recent trades"
+                sel_date = pd.Timestamp(selected_day).date()
+                act_trades = visible[visible["Date and Time"].dt.date == sel_date].sort_values("Date and Time")
+                title = f'Trades on {sel_date.strftime("%b %d, %Y")} · {len(act_trades)}'
                 head_col, clear_col = st.columns([3, 1])
                 head_col.markdown(f'<div class="tj-label">{title}</div>', unsafe_allow_html=True)
-                if selected_day and clear_col.button("Clear", key="clear_cal_day"):
+                if clear_col.button("Clear", key="clear_cal_day"):
                     st.session_state["selected_cal_day"] = None
                     st.rerun()
 
@@ -1475,7 +1469,7 @@ if csv_bytes is not None:
                     v = t[effective_col]
                     cls = pnl_class(v) or "flat"
                     tag = {"pos": "WIN", "neg": "LOSS", "flat": "BE"}[cls]
-                    when = t["Date and Time"].strftime("%H:%M" if selected_day else "%b %d %H:%M")
+                    when = t["Date and Time"].strftime("%H:%M")
                     rows.append(
                         f'<div class="tj-act-row"><span class="tj-act-tag {cls}">{tag}</span>'
                         f'<span class="tj-act-main">#{t["Trade"]:.0f} <span class="tj-act-time">{when}</span></span>'
